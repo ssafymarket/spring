@@ -6,6 +6,11 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:password}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
 
   jpa:
     hibernate:
@@ -22,6 +27,15 @@ spring:
     jdbc:
       initialize-schema: always
     timeout: 1800 # 30분 (초 단위)
+    cookie:
+      name: SESSION
+
+minio:
+  endpoint: ${MINIO_URL}
+  access-key: ${MINIO_APP_USER}
+  secret-key: ${MINIO_APP_SECRET}
+  bucket: ${MINIO_BUCKET}
+  secure: false
 
 # 로깅 설정
 logging:

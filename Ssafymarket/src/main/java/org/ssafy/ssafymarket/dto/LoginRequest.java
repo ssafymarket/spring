@@ -1,4 +1,4 @@
-package org.ssafy.ssafymarket.auth;
+package org.ssafy.ssafymarket.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

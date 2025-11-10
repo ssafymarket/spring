@@ -9,11 +9,21 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
 import org.ssafy.ssafymarket.auth.JsonUsernamePasswordAuthFilter;
+
+// CORS
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.List;
+
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -26,8 +36,10 @@ public class SecurityConfig {
 
 		JsonUsernamePasswordAuthFilter jsonLoginFilter = new JsonUsernamePasswordAuthFilter();
 		jsonLoginFilter.setAuthenticationManager(authManager);
-		// 로그인 성공 시
+
+		// 로그인 성공 시: 세션 생성 보장 + JSON 응답
 		jsonLoginFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
+			request.getSession(true); // 세션 생성 (Set-Cookie 강제)
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.setContentType("application/json;charset=UTF-8");
 			String userId = authentication.getName();
@@ -45,19 +57,33 @@ public class SecurityConfig {
 		});
 
 		http
+			// ★ CORS (프론트 사용 시)
+			.cors(c -> {})
 			.csrf(csrf -> csrf
-				.ignoringRequestMatchers("/ws/**", "/api/chat/**", "/api/test/**", "/api/auth/**")
+				.ignoringRequestMatchers(
+					"/ws/**", "/api/chat/**", "/api/test/**", "/api/auth/**",
+					"/api/posts/**"
+				)
 			)
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/api/auth/**", "/ws/**", "/api/public/**", "/chat-test.html", "/api/chat/**", "/api/test/**").permitAll()
+				// 게시물 작성/수정/삭제는 인증 필요
+				.requestMatchers(HttpMethod.POST,   "/api/posts/**").authenticated()
+				.requestMatchers(HttpMethod.PUT,    "/api/posts/**").authenticated()
+				.requestMatchers(HttpMethod.DELETE, "/api/posts/**").authenticated()
+				// 조회만 공개로 둘 거면 GET 허용
+				.requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")
 				.anyRequest().authenticated()
 			)
-
+			// ★ (중요) 컨텍스트 저장을 명시적으로 요구하지 않게
+			.securityContext(sc -> sc.requireExplicitSave(false))
 			.formLogin(AbstractHttpConfigurer::disable)
 			.httpBasic(AbstractHttpConfigurer::disable)
 
-			.addFilterAt(jsonLoginFilter, JsonUsernamePasswordAuthFilter.class)
+			// ★ (중요) 필터 위치를 UsernamePasswordAuthenticationFilter 위치에 정확히 삽입
+			.addFilterAt(jsonLoginFilter, UsernamePasswordAuthenticationFilter.class)
+
 			.logout(logout -> logout
 				.logoutUrl("/api/auth/logout")
 				.logoutSuccessHandler((request, response, authentication) -> {
@@ -66,9 +92,10 @@ public class SecurityConfig {
 					response.getWriter().write("{\"success\":true,\"message\":\"로그아웃 성공\"}");
 				})
 				.invalidateHttpSession(true)
-				.deleteCookies("JSESSIONID")
+				.deleteCookies("SESSION") // Spring Session 기본 쿠키명
 			)
 			.sessionManagement(session -> session
+				.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
 				.maximumSessions(1)
 				.maxSessionsPreventsLogin(false)
 			);
@@ -76,14 +103,28 @@ public class SecurityConfig {
 		return http.build();
 	}
 
+	// 프론트 오리진에 맞게 수정 가능
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000"));
+		config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+		config.setAllowedHeaders(List.of("*"));
+		config.setAllowCredentials(true);
+		config.setExposedHeaders(List.of("Set-Cookie"));
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", config);
+		return source;
+	}
 
 	@Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+		return config.getAuthenticationManager();
+	}
 }

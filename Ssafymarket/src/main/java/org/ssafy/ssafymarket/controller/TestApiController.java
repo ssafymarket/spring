@@ -1,6 +1,9 @@
 package org.ssafy.ssafymarket.controller;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,4 +59,13 @@ public class TestApiController {
         response.put("message", "Fixed " + users.size() + " users");
         return response;
     }
+
+	@GetMapping("/me")
+	public Map<String, Object> me(Authentication auth, HttpSession session) {
+		return Map.of(
+			"authenticated", auth != null && auth.isAuthenticated(),
+			"name", auth != null ? auth.getName() : "anonymous",
+			"sessionId", session != null ? session.getId() : null
+		);
+	}
 }
