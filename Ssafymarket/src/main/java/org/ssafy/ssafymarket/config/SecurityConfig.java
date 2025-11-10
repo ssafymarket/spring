@@ -66,7 +66,7 @@ public class SecurityConfig {
 				)
 			)
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/api/auth/**", "/ws/**", "/api/public/**", "/chat-test.html", "/api/chat/**", "/api/test/**").permitAll()
+				.requestMatchers("/api/auth/**", "/ws/**", "/api/public/**", "/chat-test.html", "/post-test.html", "/api/chat/**", "/api/test/**").permitAll()
 				// 게시물 작성/수정/삭제는 인증 필요
 				.requestMatchers(HttpMethod.POST,   "/api/posts/**").authenticated()
 				.requestMatchers(HttpMethod.PUT,    "/api/posts/**").authenticated()

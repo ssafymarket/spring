@@ -35,6 +35,12 @@ public class ChatMessage {
     @Column(name = "sender_name", nullable = false, length = 100)
     private String senderName;
 
+    /**
+     * 메시지 내용
+     * - CHAT, PRICE_OFFER: 텍스트 메시지
+     * - IMAGE: 이미지 설명 또는 빈 문자열
+     * - ENTER, LEAVE, SYSTEM: 시스템 메시지
+     */
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
@@ -42,6 +48,13 @@ public class ChatMessage {
     @Column(name = "message_type", nullable = false)
     @Builder.Default
     private MessageType messageType = MessageType.CHAT;
+
+    /**
+     * 이미지 URL (messageType이 IMAGE일 때만 사용)
+     * MinIO에 저장된 이미지 경로
+     */
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
 
     @CreationTimestamp
     @Column(name = "sent_at", nullable = false, updatable = false)
@@ -58,7 +71,8 @@ public class ChatMessage {
         CHAT,        // 일반 채팅
         ENTER,       // 입장 알림
         LEAVE,       // 퇴장 알림
-        PRICE_OFFER, // 가격 제안
-        SYSTEM       // 시스템 메시지
+        PRICE_OFFER, // 가격 제안 (사용 안 함, DB 호환성 위해 유지)
+        SYSTEM,      // 시스템 메시지
+        IMAGE        // 이미지 메시지
     }
 }

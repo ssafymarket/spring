@@ -11,4 +11,5 @@ import org.ssafy.ssafymarket.entity.ChatMessage;
 public class ChatMessageRequest {
     private String content;
     private ChatMessage.MessageType messageType;
+    private String imageUrl;  // 이미지 URL (IMAGE 타입일 때 필수)
 }

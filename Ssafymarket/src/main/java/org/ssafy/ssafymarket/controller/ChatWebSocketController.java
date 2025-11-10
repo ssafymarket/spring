@@ -46,16 +46,17 @@ public class ChatWebSocketController {
         ChatMessage.MessageType messageType = request.getMessageType() != null ?
                 request.getMessageType() : ChatMessage.MessageType.CHAT;
 
-        // 메시지 저장 및 전송
+        // 메시지 저장 및 전송 (imageUrl 포함)
         ChatMessageDto message = chatService.sendMessage(
                 roomId,
                 senderId,
                 request.getContent(),
-                messageType
+                messageType,
+                request.getImageUrl()
         );
 
-        log.info("WebSocket 메시지 전송 - roomId: {}, sender: {}, content: {}",
-                roomId, senderId, request.getContent());
+        log.info("WebSocket 메시지 전송 - roomId: {}, sender: {}, type: {}, hasImage: {}",
+                roomId, senderId, messageType, request.getImageUrl() != null);
 
         return message;
     }

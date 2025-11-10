@@ -18,6 +18,7 @@ public class ChatMessageDto {
     private String senderName;
     private String content;
     private ChatMessage.MessageType messageType;
+    private String imageUrl;  // 이미지 URL (IMAGE 타입일 때 사용)
     private LocalDateTime sentAt;
     private Boolean isRead;
     private LocalDateTime readAt;
@@ -31,6 +32,7 @@ public class ChatMessageDto {
                 .senderName(message.getSenderName())
                 .content(message.getContent())
                 .messageType(message.getMessageType())
+                .imageUrl(message.getImageUrl())
                 .sentAt(message.getSentAt())
                 .isRead(message.getIsRead())
                 .readAt(message.getReadAt())

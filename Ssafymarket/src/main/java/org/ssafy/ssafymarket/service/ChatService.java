@@ -30,11 +30,11 @@ public class ChatService {
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
-     * 메시지 전송 및 저장
+     * 메시지 전송 및 저장 (이미지 지원)
      */
     @Transactional
     public ChatMessageDto sendMessage(Long roomId, String senderId, String content,
-                                       ChatMessage.MessageType messageType) {
+                                       ChatMessage.MessageType messageType, String imageUrl) {
         // 채팅방 조회
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다: " + roomId));
@@ -49,6 +49,11 @@ public class ChatService {
             throw new IllegalArgumentException("채팅방에 메시지를 보낼 권한이 없습니다");
         }
 
+        // IMAGE 타입 검증
+        if (messageType == ChatMessage.MessageType.IMAGE && (imageUrl == null || imageUrl.isBlank())) {
+            throw new IllegalArgumentException("이미지 메시지는 imageUrl이 필수입니다");
+        }
+
         // 메시지 저장
         ChatMessage message = ChatMessage.builder()
                 .chatRoom(chatRoom)
@@ -56,13 +61,15 @@ public class ChatService {
                 .senderName(sender.getName())
                 .content(content)
                 .messageType(messageType)
+                .imageUrl(imageUrl)
                 .isRead(false)
                 .build();
 
         ChatMessage savedMessage = chatMessageRepository.save(message);
 
-        // 채팅방 최근 메시지 업데이트
-        chatRoom.setLastMessage(content);
+        // 채팅방 최근 메시지 업데이트 (이미지는 "사진"으로 표시)
+        String lastMessagePreview = messageType == ChatMessage.MessageType.IMAGE ? "사진" : content;
+        chatRoom.setLastMessage(lastMessagePreview);
         chatRoom.setLastMessageTime(savedMessage.getSentAt());
 
         // 안읽은 메시지 카운트 증가
@@ -75,9 +82,19 @@ public class ChatService {
 
         chatRoomRepository.save(chatRoom);
 
-        log.info("메시지 저장 - roomId: {}, sender: {}, type: {}", roomId, senderId, messageType);
+        log.info("메시지 저장 - roomId: {}, sender: {}, type: {}, hasImage: {}",
+                roomId, senderId, messageType, imageUrl != null);
 
         return ChatMessageDto.fromEntity(savedMessage);
+    }
+
+    /**
+     * 메시지 전송 및 저장 (하위 호환성)
+     */
+    @Transactional
+    public ChatMessageDto sendMessage(Long roomId, String senderId, String content,
+                                       ChatMessage.MessageType messageType) {
+        return sendMessage(roomId, senderId, content, messageType, null);
     }
 
     /**

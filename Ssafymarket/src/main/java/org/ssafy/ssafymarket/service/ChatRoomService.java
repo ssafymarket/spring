@@ -104,4 +104,34 @@ public class ChatRoomService {
     public boolean existsChatRoom(Long roomId) {
         return chatRoomRepository.existsById(roomId);
     }
+
+    /**
+     * 채팅방 나가기
+     * - 채팅방을 삭제하고 게시글의 채팅방 개수를 감소시킴
+     */
+    @Transactional
+    public void leaveChatRoom(Long roomId, String userId) {
+        // 채팅방 조회
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다: " + roomId));
+
+        // 권한 확인 (구매자 또는 판매자만 나갈 수 있음)
+        if (!chatRoom.getBuyer().getStudentId().equals(userId) &&
+            !chatRoom.getSeller().getStudentId().equals(userId)) {
+            throw new IllegalArgumentException("채팅방에 접근할 권한이 없습니다");
+        }
+
+        // 게시글의 채팅방 개수 감소
+        Post post = chatRoom.getPost();
+        if (post.getChatRoomCount() > 0) {
+            post.setChatRoomCount(post.getChatRoomCount() - 1);
+            postRepository.save(post);
+        }
+
+        // 채팅방 삭제
+        chatRoomRepository.delete(chatRoom);
+
+        log.info("채팅방 나가기 완료 - roomId: {}, userId: {}, postId: {}",
+                roomId, userId, post.getPostId());
+    }
 }

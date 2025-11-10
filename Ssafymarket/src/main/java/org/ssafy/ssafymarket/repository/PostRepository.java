@@ -1,5 +1,7 @@
 package org.ssafy.ssafymarket.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +15,28 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByWriter(User writer);
     List<Post> findByStatus(Post.PostStatus status);
+    List<Post> findByBuyer(User buyer);
+
+    Page<Post> findByStatus(Post.PostStatus status, Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.category = :category")
+    Page<Post> findByCategory(@Param("category") String category, Pageable pageable);
 
     @Query("SELECT p FROM Post p WHERE p.writer.studentId = :studentId ORDER BY p.createdAt DESC")
     List<Post> findByWriterStudentIdOrderByCreatedAtDesc(@Param("studentId") String studentId);
+
+    // 전체 검색 (status 필터 없음)
+    @Query("SELECT p FROM Post p WHERE " +
+           "LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Post> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    // status별 검색 (판매중/판매완료 선택 가능)
+    @Query("SELECT p FROM Post p WHERE " +
+           "(LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "p.status = :status")
+    Page<Post> searchByKeywordAndStatus(@Param("keyword") String keyword,
+                                         @Param("status") Post.PostStatus status,
+                                         Pageable pageable);
 }
