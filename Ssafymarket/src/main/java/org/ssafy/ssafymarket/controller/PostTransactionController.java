@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/posts")
+@RequestMapping("/api/post")
 @Slf4j
 public class PostTransactionController {
 

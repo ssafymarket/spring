@@ -12,6 +12,7 @@ import org.ssafy.ssafymarket.entity.PostLike;
 import org.ssafy.ssafymarket.repository.PostLikeRepository;
 import org.ssafy.ssafymarket.repository.PostRepository;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/posts")
+@RequestMapping("/api/post")
 @Slf4j
 public class PostLikeController {
 
@@ -194,23 +195,24 @@ public class PostLikeController {
 	 * Post 엔티티를 Map으로 변환 (좋아요 정보 포함)
 	 */
 	private Map<String, Object> convertPostToMap(Post post, PostLike like) {
-		return Map.of(
-			"postId", post.getPostId(),
-			"title", post.getTitle(),
-			"price", post.getPrice(),
-			"category", post.getCategory() != null ? post.getCategory() : "",
-			"description", post.getDescription() != null ? post.getDescription() : "",
-			"status", post.getStatus(),
-			"createdAt", post.getCreatedAt(),
-			"likedAt", like.getLikedAt(),
-			"thumbnailUrl", post.getThumbnailUrl() != null ? post.getThumbnailUrl() : "",
-			"imageUrls", post.getImageUrls(),
-			"likeCount", postLikeRepository.countByPostId(post.getPostId()),
-			"chatRoomCount", post.getChatRoomCount(),
-			"writer", Map.of(
-				"studentId", post.getWriter().getStudentId(),
-				"name", post.getWriter().getName()
-			)
-		);
+		Map<String, Object> map = new HashMap<>();
+		map.put("postId", post.getPostId());
+		map.put("title", post.getTitle());
+		map.put("price", post.getPrice());
+		map.put("category", post.getCategory() != null ? post.getCategory() : "");
+		map.put("description", post.getDescription() != null ? post.getDescription() : "");
+		map.put("status", post.getStatus());
+		map.put("createdAt", post.getCreatedAt());
+		map.put("likedAt", like.getLikedAt());
+		map.put("thumbnailUrl", post.getThumbnailUrl() != null ? post.getThumbnailUrl() : "");
+		map.put("imageUrls", post.getImageUrls());
+		map.put("likeCount", postLikeRepository.countByPostId(post.getPostId()));
+		map.put("chatRoomCount", post.getChatRoomCount());
+		map.put("writer", Map.of(
+			"studentId", post.getWriter().getStudentId(),
+			"name", post.getWriter().getName()
+		));
+		return map;
 	}
+
 }
