@@ -40,9 +40,11 @@ import org.ssafy.ssafymarket.repository.UserRepository;
 
 import java.util.stream.Collectors;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
+@Tag(name = "게시글", description = "게시글 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/posts")
@@ -70,6 +72,16 @@ public class PostController {
 	 * - 단일 이미지: files[0] = file
 	 * - 다중 이미지: files[0] = file1, files[1] = file2, ...
 	 */
+
+	@Operation(
+		summary = "게시글 생성",
+		description = "\t * @param files 이미지 파일 리스트 (최소 1개, 최대 10개)\n"
+			+ "\t * @param title 게시글 제목\n"
+			+ "\t * @param price 판매 가격\n"
+			+ "\t * @param category 카테고리\n"
+			+ "\t * @param description 상품 설명\n"
+			+ "\t * @return 생성된 게시글 ID"
+	)
 	@PostMapping(consumes = "multipart/form-data")
 	public ResponseEntity<Map<String, Object>> createPost(
 		@RequestPart("files") @NotNull List<MultipartFile> files,
@@ -141,6 +153,13 @@ public class PostController {
 	 * @param size 페이지 크기 (기본 20)
 	 * @param sort 정렬 방식 (latest, popular, lowPrice, highPrice)
 	 */
+
+	@Operation(
+		summary = "전체 게시글 목록 조회",
+		description = "\t * @param page 페이지 번호 (0부터 시작)\n"
+			+ "\t * @param size 페이지 크기 (기본 20)\n"
+			+ "\t * @param sort 정렬 방식 (latest, popular, lowPrice, highPrice)"
+	)
 	@GetMapping
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getAllPosts(
@@ -177,6 +196,10 @@ public class PostController {
 	/**
 	 * 특정 게시글 상세 조회
 	 */
+	@Operation(
+		summary = "특정 게시글 상세 조회",
+		description = "postid로 상세조회"
+	)
 	@GetMapping("/{postId}")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getPost(@PathVariable Long postId) {
@@ -233,6 +256,10 @@ public class PostController {
 	/**
 	 * 게시글 수정 (제목, 가격, 카테고리, 설명 수정 가능, 이미지는 별도 API)
 	 */
+	@Operation(
+		summary = "게시글 수정",
+		description = "게시글 수정 (제목, 가격, 카테고리, 설명 수정 가능, 이미지는 별도 API)"
+	)
 	@PutMapping("/{postId}")
 	@Transactional
 	public ResponseEntity<Map<String, Object>> updatePost(
@@ -280,6 +307,10 @@ public class PostController {
 	/**
 	 * 게시글 삭제 (본인 또는 관리자만 가능)
 	 */
+	@Operation(
+		summary = "게시글 삭제",
+		description = "postId로 삭제"
+	)
 	@DeleteMapping("/{postId}")
 	@Transactional
 	public ResponseEntity<Map<String, Object>> deletePost(
@@ -326,6 +357,10 @@ public class PostController {
 	/**
 	 * 판매 상태 변경 (판매중으로 변경)
 	 */
+	@Operation(
+		summary = "판매상태 변경 ",
+		description = "postId로 판매중으로 변경"
+	)
 	@PatchMapping("/{postId}/status")
 	@Transactional
 	public ResponseEntity<Map<String, Object>> updatePostStatus(
@@ -370,6 +405,11 @@ public class PostController {
 	/**
 	 * 판매 완료 처리 (구매자 정보 포함)
 	 */
+
+	@Operation(
+		summary = "판매 완료 처리",
+		description = "postId로 처리"
+	)
 	@PatchMapping("/{postId}/complete")
 	@Transactional
 	public ResponseEntity<Map<String, Object>> completePost(
@@ -418,6 +458,12 @@ public class PostController {
 	/**
 	 * 카테고리별 게시글 조회 (페이징 + 정렬)
 	 */
+
+	@Operation(
+		summary = "카테고리별 게시글 조회",
+		description = "카테고리종류, pasg,size,sort\n"+
+			"sort 에들어갈수 있는값 popular,lowprice,highprice,latest"
+	)
 	@GetMapping("/category/{category}")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getPostsByCategory(
@@ -453,6 +499,12 @@ public class PostController {
 	/**
 	 * 판매 상태별 게시글 조회 (페이징 + 정렬)
 	 */
+	@Operation(
+		summary = "판매 상태별 조회",
+		description = "status, pasg,size,sort\n"+
+			"sort 에들어갈수 있는값 popular,lowprice,highprice,latest\n"+
+			"status 에는 판매중, 판매완료 가 들어갈수 있다."
+	)
 	@GetMapping("/status/{status}")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getPostsByStatus(
@@ -492,6 +544,10 @@ public class PostController {
 	/**
 	 * 사용자별 게시글 조회 (내가 작성한 게시글)
 	 */
+	@Operation(
+		summary = "사용자별 작성한 게시글 조회",
+		description = "학번으로 그 학번 유저가 작성한 게시글 조회"
+	)
 	@GetMapping("/user/{studentId}")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getPostsByUser(@PathVariable String studentId) {
@@ -521,6 +577,10 @@ public class PostController {
 	/**
 	 * 내가 판매중인 게시글 조회
 	 */
+	@Operation(
+		summary = "내가 판매중인 게시글 조회",
+		description = ""
+	)
 	@GetMapping("/my/selling")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getMySelling(Authentication authentication) {
@@ -557,6 +617,10 @@ public class PostController {
 	/**
 	 * 내가 판매완료한 게시글 조회
 	 */
+	@Operation(
+		summary = "내가 판매완료한 게시글 조회",
+		description = ""
+	)
 	@GetMapping("/my/sold")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getMySold(Authentication authentication) {
@@ -600,6 +664,10 @@ public class PostController {
 	/**
 	 * 내가 구매한 게시글 조회
 	 */
+	@Operation(
+		summary = "내가 구매한 게시글 조회",
+		description = ""
+	)
 	@GetMapping("/my/purchased")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getMyPurchased(Authentication authentication) {
@@ -639,6 +707,11 @@ public class PostController {
 	/**
 	 * 거래내역 통합 조회 (판매 + 구매)
 	 */
+
+	@Operation(
+		summary = "거래내역 통합 조회",
+		description = "판매내역과 구매 내역 동시에 조회"
+	)
 	@GetMapping("/my/transactions")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getMyTransactions(Authentication authentication) {
@@ -761,6 +834,10 @@ public class PostController {
 	/**
 	 * 특정 게시글의 채팅방 개수 조회
 	 */
+	@Operation(
+		summary = "특정 게시글 채팅방 개수 조회",
+		description = "postID로 조회"
+	)
 	@GetMapping("/{postId}/chatrooms/count")
 	public ResponseEntity<Map<String, Object>> getChatRoomCount(@PathVariable Long postId) {
 		try {
@@ -786,6 +863,10 @@ public class PostController {
 	/**
 	 * 좋아요 추가
 	 */
+	@Operation(
+		summary = "좋아요 추가",
+		description = "postid로 그 게시글에 좋아요를 추가한다."
+	)
 	@PostMapping("/{postId}/like")
 	@Transactional
 	public ResponseEntity<Map<String, Object>> addLike(
@@ -834,6 +915,10 @@ public class PostController {
 	/**
 	 * 좋아요 취소
 	 */
+	@Operation(
+		summary = "좋아요 취소",
+		description = "postid로 좋아요를 취소한다."
+	)
 	@DeleteMapping("/{postId}/like")
 	@Transactional
 	public ResponseEntity<Map<String, Object>> removeLike(
@@ -873,6 +958,10 @@ public class PostController {
 	/**
 	 * 내가 좋아요한 게시글 목록 조회
 	 */
+	@Operation(
+		summary = "내가 좋아요한 게시글 목록 조회",
+		description = ""
+	)
 	@GetMapping("/liked")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getLikedPosts(Authentication authentication) {
@@ -910,6 +999,10 @@ public class PostController {
 	/**
 	 * 좋아요 여부 확인
 	 */
+	@Operation(
+		summary = "좋아요 여부 확인",
+		description = "게시글의 좋아요갯수 확인 postid 필요"
+	)
 	@GetMapping("/{postId}/like/check")
 	public ResponseEntity<Map<String, Object>> checkLike(
 		@PathVariable Long postId,
@@ -974,6 +1067,14 @@ public class PostController {
 	 * @param size 페이지 크기 (기본 20)
 	 * @param sort 정렬 방식 (latest, popular, lowPrice, highPrice)
 	 */
+	@Operation(
+		summary = "게시글 검색",
+		description = "\t * @param keyword 검색 키워드 (제목 또는 설명에 포함)\n"
+			+ "\t * @param status 판매상태 (선택, 없으면 전체 검색)\n"
+			+ "\t * @param page 페이지 번호 (기본 0)\n"
+			+ "\t * @param size 페이지 크기 (기본 20)\n"
+			+ "\t * @param sort 정렬 방식 (latest, popular, lowPrice, highPrice)"
+	)
 	@GetMapping("/search")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> searchPosts(

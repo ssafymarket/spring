@@ -62,7 +62,7 @@ public class SecurityConfig {
 			.csrf(csrf -> csrf
 				.ignoringRequestMatchers(
 					"/ws/**", "/api/chat/**", "/api/test/**", "/api/auth/**",
-					"/api/posts/**"
+					"/api/posts/**","/api/user/**"
 				)
 			)
 			.authorizeHttpRequests(auth -> auth
@@ -73,6 +73,7 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.DELETE, "/api/posts/**").authenticated()
 				// 조회만 공개로 둘 거면 GET 허용
 				.requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
+				.requestMatchers("/api/user/**").authenticated()
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")
 				.anyRequest().authenticated()
 			)

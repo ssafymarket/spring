@@ -1,5 +1,7 @@
 package org.ssafy.ssafymarket.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
+@Tag(name = "채팅방", description = "채팅방 API")
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
 public class ChatRestController {
@@ -33,6 +36,10 @@ public class ChatRestController {
      * 채팅방 생성 또는 조회
      * POST /api/chat/room/create
      */
+	@Operation(
+		summary = "채팅방 생성/조회",
+		description = "postId 기반으로 채팅방을 생성한다."
+	)
     @PostMapping("/room/create")
     public ResponseEntity<ChatRoomDto> createChatRoom(
             @RequestBody ChatRoomCreateRequest request,
@@ -51,6 +58,9 @@ public class ChatRestController {
      * 내 채팅방 목록 조회
      * GET /api/chat/rooms
      */
+	@Operation(
+		summary = "내 채팅방 목록 조회"
+	)
     @GetMapping("/rooms")
     public ResponseEntity<List<ChatRoomDto>> getMyChatRooms(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -67,6 +77,12 @@ public class ChatRestController {
      * 특정 채팅방 상세 조회
      * GET /api/chat/room/{roomId}
      */
+
+
+	@Operation(
+		summary = "특정 채팅방 상세 조회",
+		description = "roomId 기반으로 채팅방 상세 조회"
+	)
     @GetMapping("/room/{roomId}")
     public ResponseEntity<ChatRoomDto> getChatRoom(
             @PathVariable Long roomId,
@@ -82,6 +98,10 @@ public class ChatRestController {
      * 채팅방 메시지 히스토리 조회
      * GET /api/chat/room/{roomId}/messages?page=0&size=50
      */
+	@Operation(
+		summary = "채팅방 메시지 히스토리 조회",
+		description = "roomId 기반으로 채팅방 메시지 조회."
+	)
     @GetMapping("/room/{roomId}/messages")
     public ResponseEntity<List<ChatMessageDto>> getMessages(
             @PathVariable Long roomId,
@@ -106,6 +126,10 @@ public class ChatRestController {
      * 메시지 읽음 처리
      * PUT /api/chat/room/{roomId}/read
      */
+	@Operation(
+		summary = "메시지 읽음 처리",
+		description = "roomid로 읽음 처리"
+	)
     @PutMapping("/room/{roomId}/read")
     public ResponseEntity<Map<String, Object>> markAsRead(
             @PathVariable Long roomId,
@@ -125,6 +149,10 @@ public class ChatRestController {
      * 안읽은 메시지 개수 조회
      * GET /api/chat/room/{roomId}/unread-count
      */
+	@Operation(
+		summary = "안읽은 메시지 개수 조회",
+		description = "roomid 기반으로 조히"
+	)
     @GetMapping("/room/{roomId}/unread-count")
     public ResponseEntity<Map<String, Long>> getUnreadCount(
             @PathVariable Long roomId,
@@ -143,6 +171,10 @@ public class ChatRestController {
      * 전체 안읽은 메시지 개수 조회
      * GET /api/chat/unread-count
      */
+	@Operation(
+		summary = "전체 안읽은 메시지 개수 조회",
+		description = ""
+	)
     @GetMapping("/unread-count")
     public ResponseEntity<Map<String, Long>> getTotalUnreadCount(
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -160,6 +192,10 @@ public class ChatRestController {
      * 채팅방 나가기
      * DELETE /api/chat/room/{roomId}
      */
+	@Operation(
+		summary = "채팅방 나가기",
+		description = "학번 ,이름,반,비밀 번호를 입력하여 회원가입을 진행한다."
+	)
     @DeleteMapping("/room/{roomId}")
     public ResponseEntity<Map<String, Object>> leaveChatRoom(
             @PathVariable Long roomId,
@@ -206,6 +242,15 @@ public class ChatRestController {
      * @param file 업로드할 이미지 파일 (최대 10MB)
      * @return 업로드된 이미지 URL
      */
+	@Operation(
+		summary = "채팅 이미지 업로드",
+		description = "file 업로드"
+			+ "\n"
+			+ " 1. 클라이언트가 이 API로 이미지를 먼저 업로드\n"
+			+ "2. 서버가 MinIO에 저장 후 imageUrl 반환\n"
+			+ "     3. 클라이언트가 WebSocket으로 메시지 전송:\n"
+			+ "        { messageType: \"IMAGE\", imageUrl: \"반환받은URL\", content: \"\" }"
+	)
     @PostMapping(value = "/upload-image", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> uploadChatImage(
             @RequestPart("file") MultipartFile file,

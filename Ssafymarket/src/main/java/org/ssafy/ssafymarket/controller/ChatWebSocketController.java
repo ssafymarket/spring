@@ -27,6 +27,7 @@ public class ChatWebSocketController {
      * 클라이언트 → /app/chat/send/{roomId}
      * 브로드캐스트 → /topic/room/{roomId}
      */
+
     @MessageMapping("/chat/send/{roomId}")
     @SendTo("/topic/room/{roomId}")
     public ChatMessageDto sendMessage(
