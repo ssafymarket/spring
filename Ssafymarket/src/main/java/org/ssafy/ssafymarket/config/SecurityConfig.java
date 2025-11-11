@@ -108,11 +108,19 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000"));
-		config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+
+		// ★ 모든 도메인 허용(자격증명 허용 시 반드시 patterns 사용)
+		config.setAllowedOriginPatterns(List.of("*"));
+
+		// 요청 메서드/헤더 전부 허용
+		config.setAllowedMethods(List.of("*"));
 		config.setAllowedHeaders(List.of("*"));
+
+		// 쿠키/인증정보 허용 (세션 쿠키 필요하면 true)
 		config.setAllowCredentials(true);
-		config.setExposedHeaders(List.of("Set-Cookie"));
+
+		// 노출할 헤더(필요시만)
+		config.setExposedHeaders(List.of("Set-Cookie", "Authorization"));
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
@@ -127,5 +135,15 @@ public class SecurityConfig {
 	@Bean
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
 		return config.getAuthenticationManager();
+	}
+
+	@Bean
+	public org.springframework.session.web.http.CookieSerializer cookieSerializer() {
+		var s = new org.springframework.session.web.http.DefaultCookieSerializer();
+		s.setCookieName("SESSION");
+		s.setUseHttpOnlyCookie(true);
+		s.setSameSite("None");  // ★ 크로스사이트
+		s.setUseSecureCookie(true); // HTTPS 필요
+		return s;
 	}
 }
