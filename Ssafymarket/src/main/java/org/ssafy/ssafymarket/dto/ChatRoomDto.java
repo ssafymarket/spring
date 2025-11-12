@@ -35,7 +35,7 @@ public class ChatRoomDto {
                 .roomId(chatRoom.getRoomId())
                 .postId(chatRoom.getPost().getPostId())
                 .postTitle(chatRoom.getPost().getTitle())
-                .postImage(chatRoom.getPost().getImageUrl())
+                .postImage(chatRoom.getPost().getThumbnailUrl())
                 .postPrice(chatRoom.getPost().getPrice())
                 .buyerId(chatRoom.getBuyer().getStudentId())
                 .buyerName(chatRoom.getBuyer().getName())
