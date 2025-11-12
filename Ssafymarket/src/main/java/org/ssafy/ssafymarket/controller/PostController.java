@@ -168,8 +168,16 @@ public class PostController {
 		@RequestParam(defaultValue = "latest") String sort
 	) {
 		try {
-			Pageable pageable = createPageable(page, size, sort);
-			Page<Post> postPage = postRepository.findAll(pageable);
+			Page<Post> postPage;
+
+			// 인기순은 별도 쿼리 사용
+			if ("popular".equalsIgnoreCase(sort)) {
+				Pageable pageable = PageRequest.of(page, size);
+				postPage = postRepository.findAllByPopularity(pageable);
+			} else {
+				Pageable pageable = createPageable(page, size, sort);
+				postPage = postRepository.findAll(pageable);
+			}
 
 			List<Map<String, Object>> postList = postPage.getContent().stream()
 				.map(this::convertPostToMap)
@@ -461,20 +469,29 @@ public class PostController {
 
 	@Operation(
 		summary = "카테고리별 게시글 조회",
-		description = "카테고리종류, pasg,size,sort\n"+
+		description = "카테고리종류, page,size,sort\n"+
 			"sort 에들어갈수 있는값 popular,lowprice,highprice,latest"
 	)
-	@GetMapping("/category/{category}")
+	@GetMapping("/category")
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getPostsByCategory(
-		@PathVariable String category,
+		@RequestParam String name,
 		@RequestParam(defaultValue = "0") int page,
 		@RequestParam(defaultValue = "20") int size,
 		@RequestParam(defaultValue = "latest") String sort
 	) {
+		String category = name;
 		try {
-			Pageable pageable = createPageable(page, size, sort);
-			Page<Post> postPage = postRepository.findByCategory(category, pageable);
+			Page<Post> postPage;
+
+			// 인기순은 별도 쿼리 사용
+			if ("popular".equalsIgnoreCase(sort)) {
+				Pageable pageable = PageRequest.of(page, size);
+				postPage = postRepository.findByCategoryByPopularity(category, pageable);
+			} else {
+				Pageable pageable = createPageable(page, size, sort);
+				postPage = postRepository.findByCategory(category, pageable);
+			}
 
 			List<Map<String, Object>> postList = postPage.getContent().stream()
 				.map(this::convertPostToMap)
@@ -1093,15 +1110,23 @@ public class PostController {
 					));
 			}
 
-			Pageable pageable = createPageable(page, size, sort);
 			Page<Post> postPage;
+			boolean isPopular = "popular".equalsIgnoreCase(sort);
 
 			// status 파라미터가 있으면 해당 상태만 검색, 없으면 전체 검색
 			if (status != null && !status.trim().isEmpty()) {
 				try {
 					Post.PostStatus postStatus = Post.PostStatus.valueOf(status);
-					postPage = postRepository.searchByKeywordAndStatus(keyword.trim(), postStatus, pageable);
-					log.info("게시글 검색 (status 필터) - keyword: {}, status: {}, page: {}", keyword, status, page);
+
+					if (isPopular) {
+						Pageable pageable = PageRequest.of(page, size);
+						postPage = postRepository.searchByKeywordAndStatusByPopularity(keyword.trim(), postStatus, pageable);
+					} else {
+						Pageable pageable = createPageable(page, size, sort);
+						postPage = postRepository.searchByKeywordAndStatus(keyword.trim(), postStatus, pageable);
+					}
+
+					log.info("게시글 검색 (status 필터) - keyword: {}, status: {}, page: {}, sort: {}", keyword, status, page, sort);
 				} catch (IllegalArgumentException e) {
 					return ResponseEntity.badRequest()
 						.body(Map.of(
@@ -1110,8 +1135,15 @@ public class PostController {
 						));
 				}
 			} else {
-				postPage = postRepository.searchByKeyword(keyword.trim(), pageable);
-				log.info("게시글 검색 (전체) - keyword: {}, page: {}", keyword, page);
+				if (isPopular) {
+					Pageable pageable = PageRequest.of(page, size);
+					postPage = postRepository.searchByKeywordByPopularity(keyword.trim(), pageable);
+				} else {
+					Pageable pageable = createPageable(page, size, sort);
+					postPage = postRepository.searchByKeyword(keyword.trim(), pageable);
+				}
+
+				log.info("게시글 검색 (전체) - keyword: {}, page: {}, sort: {}", keyword, page, sort);
 			}
 
 			List<Map<String, Object>> postList = postPage.getContent().stream()

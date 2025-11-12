@@ -25,6 +25,42 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE p.writer.studentId = :studentId ORDER BY p.createdAt DESC")
     List<Post> findByWriterStudentIdOrderByCreatedAtDesc(@Param("studentId") String studentId);
 
+    // 인기순 정렬 (좋아요 수 기준)
+    @Query("SELECT p FROM Post p " +
+           "LEFT JOIN PostLike pl ON pl.postId = p.postId " +
+           "GROUP BY p.postId " +
+           "ORDER BY COUNT(pl) DESC, p.createdAt DESC")
+    Page<Post> findAllByPopularity(Pageable pageable);
+
+    // 카테고리별 인기순 정렬
+    @Query("SELECT p FROM Post p " +
+           "LEFT JOIN PostLike pl ON pl.postId = p.postId " +
+           "WHERE p.category = :category " +
+           "GROUP BY p.postId " +
+           "ORDER BY COUNT(pl) DESC, p.createdAt DESC")
+    Page<Post> findByCategoryByPopularity(@Param("category") String category, Pageable pageable);
+
+    // 검색 인기순 정렬
+    @Query("SELECT p FROM Post p " +
+           "LEFT JOIN PostLike pl ON pl.postId = p.postId " +
+           "WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "GROUP BY p.postId " +
+           "ORDER BY COUNT(pl) DESC, p.createdAt DESC")
+    Page<Post> searchByKeywordByPopularity(@Param("keyword") String keyword, Pageable pageable);
+
+    // 검색 + 상태별 인기순 정렬
+    @Query("SELECT p FROM Post p " +
+           "LEFT JOIN PostLike pl ON pl.postId = p.postId " +
+           "WHERE (LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "p.status = :status " +
+           "GROUP BY p.postId " +
+           "ORDER BY COUNT(pl) DESC, p.createdAt DESC")
+    Page<Post> searchByKeywordAndStatusByPopularity(@Param("keyword") String keyword,
+                                                     @Param("status") Post.PostStatus status,
+                                                     Pageable pageable);
+
     // 전체 검색 (status 필터 없음)
     @Query("SELECT p FROM Post p WHERE " +
            "LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
