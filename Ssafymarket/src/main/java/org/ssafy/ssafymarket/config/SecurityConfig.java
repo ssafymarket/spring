@@ -144,7 +144,6 @@ public class SecurityConfig {
 		var s = new org.springframework.session.web.http.DefaultCookieSerializer();
 		s.setCookieName("SESSION");
 		s.setUseHttpOnlyCookie(true);
-		s.setSameSite("None");  // ★ 크로스사이트
 		s.setUseSecureCookie(false); // HTTP 환경에서도 쿠키 전달
 		return s;
 	}
