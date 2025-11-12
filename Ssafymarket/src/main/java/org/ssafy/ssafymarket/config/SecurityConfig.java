@@ -66,7 +66,9 @@ public class SecurityConfig {
 				)
 			)
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/api/auth/**", "/ws/**", "/api/public/**", "/chat-test.html", "/post-test.html", "/api/chat/**", "/api/test/**","/swagger-ui/**","/v3/api-docs/**").permitAll()
+				.requestMatchers("/api/auth/**", "/ws/**", "/api/public/**", "/chat-test.html", "/post-test.html", "/api/test/**","/swagger-ui/**","/v3/api-docs/**").permitAll()
+				// 채팅 API는 인증 필요
+				.requestMatchers("/api/chat/**").authenticated()
 				// 게시물 작성/수정/삭제는 인증 필요
 				.requestMatchers(HttpMethod.POST,   "/api/posts/**").authenticated()
 				.requestMatchers(HttpMethod.PUT,    "/api/posts/**").authenticated()
@@ -143,7 +145,7 @@ public class SecurityConfig {
 		s.setCookieName("SESSION");
 		s.setUseHttpOnlyCookie(true);
 		s.setSameSite("None");  // ★ 크로스사이트
-		s.setUseSecureCookie(true); // HTTPS 필요
+		s.setUseSecureCookie(false); // HTTP 환경에서도 쿠키 전달
 		return s;
 	}
 }

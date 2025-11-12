@@ -262,11 +262,14 @@ public class PostController {
 	}
 
 	/**
-	 * 게시글 수정 (제목, 가격, 카테고리, 설명 수정 가능, 이미지는 별도 API)
+	 * 게시글 수정 (제목, 가격, 카테고리, 설명, 이미지 수정 가능)
 	 */
 	@Operation(
 		summary = "게시글 수정",
-		description = "게시글 수정 (제목, 가격, 카테고리, 설명 수정 가능, 이미지는 별도 API)"
+		description = "게시글 수정 (제목, 가격, 카테고리, 설명, 이미지 수정 가능)\n" +
+			"- 텍스트 정보: title, price, category, description (선택)\n" +
+			"- 이미지: newImages로 새 이미지 추가, deleteImageIds로 삭제할 이미지 ID 목록\n" +
+			"- 최소 1개의 이미지는 유지되어야 함"
 	)
 	@PutMapping("/{postId}")
 	@Transactional
@@ -276,6 +279,8 @@ public class PostController {
 		@RequestParam(required = false) Integer price,
 		@RequestParam(required = false) String category,
 		@RequestParam(required = false) String description,
+		@RequestParam(value = "newImages", required = false) List<MultipartFile> newImages,
+		@RequestParam(value = "deleteImageIds", required = false) List<Long> deleteImageIds,
 		Authentication authentication
 	) {
 		try {
@@ -293,17 +298,66 @@ public class PostController {
 					.body(Map.of("success", false, "message", "본인의 게시글만 수정할 수 있습니다."));
 			}
 
+			// 텍스트 정보 수정
 			if (title != null) post.setTitle(title);
 			if (price != null) post.setPrice(price);
 			if (category != null) post.setCategory(category);
 			if (description != null) post.setDescription(description);
+
+			// 이미지 삭제 처리
+			int currentImageCount = post.getImages().size();
+			int deleteCount = (deleteImageIds != null) ? deleteImageIds.size() : 0;
+			int addCount = (newImages != null) ? newImages.size() : 0;
+			int finalImageCount = currentImageCount - deleteCount + addCount;
+
+			// 최소 1개 이미지 유지 검증
+			if (finalImageCount < 1) {
+				return ResponseEntity.badRequest()
+					.body(Map.of("success", false, "message", "최소 1개의 이미지는 유지해야 합니다."));
+			}
+
+			// 최대 10개 검증
+			if (finalImageCount > 10) {
+				return ResponseEntity.badRequest()
+					.body(Map.of("success", false, "message", "이미지는 최대 10개까지 가능합니다."));
+			}
+
+			// 이미지 삭제
+			if (deleteImageIds != null && !deleteImageIds.isEmpty()) {
+				List<PostImage> imagesToDelete = post.getImages().stream()
+					.filter(img -> deleteImageIds.contains(img.getImageId()))
+					.toList();
+
+				for (PostImage image : imagesToDelete) {
+					// MinIO에서 삭제 시도 (실패해도 계속 진행)
+					try {
+						minioService.deleteFile(image.getImageUrl());
+					} catch (Exception e) {
+						log.warn("MinIO 이미지 삭제 실패 (계속 진행): {}", e.getMessage());
+					}
+					post.getImages().remove(image);
+				}
+				log.info("이미지 삭제 완료 - postId: {}, 삭제 개수: {}", postId, imagesToDelete.size());
+			}
+
+			// 새 이미지 추가
+			if (newImages != null && !newImages.isEmpty()) {
+				for (MultipartFile file : newImages) {
+					if (!file.isEmpty()) {
+						String imageUrl = minioService.uploadFile(file);
+						post.addImage(imageUrl);
+					}
+				}
+				log.info("이미지 추가 완료 - postId: {}, 추가 개수: {}", postId, newImages.size());
+			}
 
 			postRepository.save(post);
 
 			return ResponseEntity.ok(Map.of(
 				"success", true,
 				"message", "게시글이 수정되었습니다.",
-				"postId", postId
+				"postId", postId,
+				"totalImages", post.getImages().size()
 			));
 		} catch (Exception e) {
 			log.error("게시글 수정 실패", e);

@@ -35,8 +35,8 @@ public class ChatService {
     @Transactional
     public ChatMessageDto sendMessage(Long roomId, String senderId, String content,
                                        ChatMessage.MessageType messageType, String imageUrl) {
-        // 채팅방 조회
-        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+        // 채팅방 조회 (Fetch Join으로 성능 최적화)
+        ChatRoom chatRoom = chatRoomRepository.findByIdWithFetch(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다: " + roomId));
 
         // 발신자 조회
@@ -67,10 +67,12 @@ public class ChatService {
 
         ChatMessage savedMessage = chatMessageRepository.save(message);
 
-        // 채팅방 최근 메시지 업데이트 (이미지는 "사진"으로 표시)
-        String lastMessagePreview = messageType == ChatMessage.MessageType.IMAGE ? "사진" : content;
-        chatRoom.setLastMessage(lastMessagePreview);
-        chatRoom.setLastMessageTime(savedMessage.getSentAt());
+        // 채팅방 최근 메시지 업데이트 (ENTER 타입은 제외, 이미지는 "사진"으로 표시)
+        if (messageType != ChatMessage.MessageType.ENTER) {
+            String lastMessagePreview = messageType == ChatMessage.MessageType.IMAGE ? "사진" : content;
+            chatRoom.setLastMessage(lastMessagePreview);
+            chatRoom.setLastMessageTime(savedMessage.getSentAt());
+        }
 
         // 안읽은 메시지 카운트 증가
         boolean isBuyer = chatRoom.getBuyer().getStudentId().equals(senderId);
@@ -84,6 +86,28 @@ public class ChatService {
 
         log.info("메시지 저장 - roomId: {}, sender: {}, type: {}, hasImage: {}",
                 roomId, senderId, messageType, imageUrl != null);
+
+        // 상대방에게 실시간 알림 전송 (ENTER 메시지는 제외)
+        if (messageType != ChatMessage.MessageType.ENTER) {
+            String receiverId = isBuyer ? chatRoom.getSeller().getStudentId() : chatRoom.getBuyer().getStudentId();
+            long receiverUnreadCount = chatMessageRepository.countTotalUnreadMessages(receiverId);
+
+            messagingTemplate.convertAndSendToUser(
+                    receiverId,
+                    "/queue/notification",
+                    java.util.Map.of(
+                            "roomId", roomId,
+                            "postId", chatRoom.getPost().getPostId(),
+                            "postTitle", chatRoom.getPost().getTitle(),
+                            "senderName", sender.getName(),
+                            "content", messageType == ChatMessage.MessageType.IMAGE ? "사진" : content,
+                            "totalUnreadCount", receiverUnreadCount,
+                            "timestamp", savedMessage.getSentAt()
+                    )
+            );
+
+            log.info("실시간 알림 전송 - receiverId: {}, totalUnreadCount: {}", receiverId, receiverUnreadCount);
+        }
 
         return ChatMessageDto.fromEntity(savedMessage);
     }
@@ -116,7 +140,7 @@ public class ChatService {
      */
     @Transactional
     public void markMessagesAsRead(Long roomId, String userId) {
-        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+        ChatRoom chatRoom = chatRoomRepository.findByIdWithFetch(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다: " + roomId));
 
         // 안읽은 메시지 읽음 처리

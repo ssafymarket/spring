@@ -193,6 +193,32 @@ public class MinioService {
 	}
 
 	/**
+	 * 파일을 MinIO에 업로드 (게시글 이미지 추가 등에 사용)
+	 * @param file 업로드할 이미지 파일
+	 * @return 업로드된 이미지 URL (bucket/objectName)
+	 */
+	public String uploadFile(MultipartFile file) {
+		log.info("이미지 업로드 시작 - 파일명: {}", file.getOriginalFilename());
+
+		// 파일 검증
+		if (file.isEmpty()) {
+			throw new IllegalArgumentException("빈 파일은 업로드할 수 없습니다.");
+		}
+
+		// 파일 크기 제한 (10MB)
+		if (file.getSize() > 10 * 1024 * 1024) {
+			throw new IllegalArgumentException("파일 크기는 10MB를 초과할 수 없습니다.");
+		}
+
+		// MinIO 업로드
+		String objectName = uploadToMinio(file);
+		String imageUrl = bucketName + "/" + objectName;
+
+		log.info("이미지 업로드 완료: {}", imageUrl);
+		return imageUrl;
+	}
+
+	/**
 	 * 채팅 이미지 업로드 (Post와 무관한 단독 이미지)
 	 * @param file 업로드할 이미지 파일
 	 * @return 전체 이미지 URL (bucket/objectName 형식)
@@ -284,6 +310,29 @@ public class MinioService {
 			case "image/webp" -> "webp";
 			default -> "bin";
 		};
+	}
+
+	/**
+	 * MinIO에서 파일 삭제
+	 * @param imageUrl 삭제할 이미지 URL (예: http://minio-url/bucket/filename.jpg)
+	 */
+	public void deleteFile(String imageUrl) {
+		try {
+			// URL에서 파일명 추출 (마지막 / 이후 부분)
+			String objectName = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
+
+			minioClient.removeObject(
+				RemoveObjectArgs.builder()
+					.bucket(bucketName)
+					.object(objectName)
+					.build()
+			);
+
+			log.info("MinIO 파일 삭제 성공: {}", objectName);
+		} catch (Exception e) {
+			log.error("MinIO 파일 삭제 실패: {}", imageUrl, e);
+			throw new RuntimeException("파일 삭제 실패: " + e.getMessage(), e);
+		}
 	}
 
 }

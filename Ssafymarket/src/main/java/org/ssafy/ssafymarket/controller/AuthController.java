@@ -2,8 +2,11 @@ package org.ssafy.ssafymarket.controller;
 
 import java.util.Map;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -71,6 +74,43 @@ public class AuthController {
 
 		));
 
+	}
+
+	/**
+	 * 내 정보 조회
+	 */
+	@Operation(
+		summary = "내 정보 조회",
+		description = "로그인한 사용자의 정보 조회\n" +
+			"학번, 이름, 반 정보 반환\n" +
+			"인증 필요"
+	)
+	@GetMapping("/me")
+	public ResponseEntity<Map<String, Object>> getMyInfo(Authentication authentication) {
+		try {
+			if (authentication == null) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body(Map.of("success", false, "message", "로그인이 필요합니다."));
+			}
+
+			String studentId = authentication.getName();
+			User user = userRepository.findByStudentId(studentId)
+				.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+			return ResponseEntity.ok(Map.of(
+				"success", true,
+				"user", Map.of(
+					"studentId", user.getStudentId(),
+					"name", user.getName(),
+					"className", user.getClassName(),
+					"role", user.getRole().name()
+				)
+			));
+
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(Map.of("success", false, "message", "조회 실패: " + e.getMessage()));
+		}
 	}
 
 }

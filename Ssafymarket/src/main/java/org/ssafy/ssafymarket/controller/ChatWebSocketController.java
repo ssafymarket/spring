@@ -65,6 +65,8 @@ public class ChatWebSocketController {
     /**
      * 채팅방 입장
      * 클라이언트 → /app/chat/enter/{roomId}
+     *
+     * 입장 메시지는 DB에 저장하지 않고 WebSocket으로만 브로드캐스트
      */
     @MessageMapping("/chat/enter/{roomId}")
     @SendTo("/topic/room/{roomId}")
@@ -78,15 +80,18 @@ public class ChatWebSocketController {
             throw new IllegalStateException("인증되지 않은 사용자입니다");
         }
 
-        // 입장 메시지 전송
-        ChatMessageDto enterMessage = chatService.sendMessage(
-                roomId,
-                userId,
-                "님이 입장하셨습니다.",
-                ChatMessage.MessageType.ENTER
-        );
+        // 입장 메시지는 DB에 저장하지 않고 WebSocket으로만 전송
+        ChatMessageDto enterMessage = ChatMessageDto.builder()
+                .roomId(roomId)
+                .senderId(userId)
+                .senderName(userId)
+                .content("님이 입장하셨습니다.")
+                .messageType(ChatMessage.MessageType.ENTER)
+                .isRead(true)
+                .sentAt(java.time.LocalDateTime.now())
+                .build();
 
-        log.info("사용자 채팅방 입장 - roomId: {}, userId: {}", roomId, userId);
+        log.info("사용자 채팅방 입장 (DB 저장 안 함) - roomId: {}, userId: {}", roomId, userId);
 
         return enterMessage;
     }
