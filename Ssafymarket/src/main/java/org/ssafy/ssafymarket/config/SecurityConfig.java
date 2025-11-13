@@ -62,7 +62,7 @@ public class SecurityConfig {
 			.csrf(csrf -> csrf
 				.ignoringRequestMatchers(
 					"/ws/**", "/api/chat/**", "/api/test/**", "/api/auth/**",
-					"/api/posts/**","/api/user/**"
+					"/api/posts/**","/api/user/**","/api/admin/**"
 				)
 			)
 			.authorizeHttpRequests(auth -> auth

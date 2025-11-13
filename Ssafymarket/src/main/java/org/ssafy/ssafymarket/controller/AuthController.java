@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.ssafy.ssafymarket.dto.LoginRequest;
 import org.ssafy.ssafymarket.dto.SignupRequest;
+import org.ssafy.ssafymarket.entity.TempUser;
 import org.ssafy.ssafymarket.entity.User;
+import org.ssafy.ssafymarket.repository.TempUserRepository;
 import org.ssafy.ssafymarket.repository.UserRepository;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
+    private final TempUserRepository tempUserRepository;
 
 
 	@Operation(summary = "로그인 (세션 발급)",
@@ -57,15 +60,21 @@ public class AuthController {
 				.body(Map.of("success", false, "message", "이미 존재하는 학번입니다."));
 		}
 
-		User user = new User();
+        //임시 회원등록에드 중복 체크 확인
+        if(tempUserRepository.existsById(request.getStudentId())){
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("success", false, "message", "이미 등록 하셨습니다."));
+        }
+
+
+        TempUser user = new TempUser();
 		user.setStudentId(request.getStudentId());
 		user.setName(request.getName());
 		user.setClassName(request.getClassName());
 		user.setPassword(passwordEncoder.encode(request.getPassword())); // 암호화
-		user.setRole(User.UserRole.ROLE_USER);
 
-
-		userRepository.save(user);
+        tempUserRepository.save(user);
 
 		return ResponseEntity.ok(Map.of(
 			"success", true,
