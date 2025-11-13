@@ -50,4 +50,8 @@ public class ChatRoom {
     @Column(name = "unread_seller")
     @Builder.Default
     private Integer unreadSeller = 0;
+
+    @Column(name = "activity", nullable = false)
+    @Builder.Default
+    private Integer activity = 1;  // 1: 활성, 0: 비활성(삭제됨)
 }

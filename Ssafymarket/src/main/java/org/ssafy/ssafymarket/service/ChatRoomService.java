@@ -107,7 +107,7 @@ public class ChatRoomService {
 
     /**
      * 채팅방 나가기
-     * - 채팅방을 삭제하고 게시글의 채팅방 개수를 감소시킴
+     * - 채팅방을 비활성화(soft delete)하고 게시글의 채팅방 개수를 감소시킴
      */
     @Transactional
     public void leaveChatRoom(Long roomId, String userId) {
@@ -128,8 +128,9 @@ public class ChatRoomService {
             postRepository.save(post);
         }
 
-        // 채팅방 삭제
-        chatRoomRepository.delete(chatRoom);
+        // 채팅방 비활성화 (soft delete)
+        chatRoom.setActivity(0);
+        chatRoomRepository.save(chatRoom);
 
         log.info("채팅방 나가기 완료 - roomId: {}, userId: {}, postId: {}",
                 roomId, userId, post.getPostId());

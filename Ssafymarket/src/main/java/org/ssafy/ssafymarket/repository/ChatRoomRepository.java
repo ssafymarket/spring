@@ -18,7 +18,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
            "JOIN FETCH cr.buyer b " +
            "JOIN FETCH cr.seller s " +
            "JOIN FETCH p.writer " +
-           "WHERE p.postId = :postId AND b.studentId = :buyerId")
+           "WHERE p.postId = :postId AND b.studentId = :buyerId AND cr.activity = 1")
     Optional<ChatRoom> findByPost_PostIdAndBuyer_StudentId(@Param("postId") Long postId, @Param("buyerId") String buyerId);
 
     // 사용자가 참여한 모든 채팅방 조회 - Fetch Join으로 성능 최적화
@@ -27,7 +27,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
            "JOIN FETCH cr.buyer b " +
            "JOIN FETCH cr.seller s " +
            "JOIN FETCH p.writer " +
-           "WHERE cr.buyer.studentId = :userId OR cr.seller.studentId = :userId " +
+           "WHERE (cr.buyer.studentId = :userId OR cr.seller.studentId = :userId) AND cr.activity = 1 " +
            "ORDER BY cr.lastMessageTime DESC NULLS LAST, cr.createdAt DESC")
     List<ChatRoom> findAllByUserId(@Param("userId") String userId);
 
@@ -49,6 +49,6 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
            "JOIN FETCH cr.buyer b " +
            "JOIN FETCH cr.seller s " +
            "JOIN FETCH p.writer " +
-           "WHERE cr.roomId = :roomId")
+           "WHERE cr.roomId = :roomId AND cr.activity = 1")
     Optional<ChatRoom> findByIdWithFetch(@Param("roomId") Long roomId);
 }
