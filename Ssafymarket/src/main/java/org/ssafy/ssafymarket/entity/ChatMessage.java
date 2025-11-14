@@ -45,7 +45,7 @@ public class ChatMessage {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "message_type", nullable = false)
+    @Column(name = "message_type", nullable = false, length = 20)
     @Builder.Default
     private MessageType messageType = MessageType.CHAT;
 
