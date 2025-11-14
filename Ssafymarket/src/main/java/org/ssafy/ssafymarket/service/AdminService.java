@@ -39,4 +39,14 @@ public class AdminService {
         return userRepository.save(user);
 
     }
+
+	@Transactional
+	public void rejectApproval(String id) {
+		TempUser tempUser = tempUserRepository.findById(id)
+			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 TempUser ID입니다. id=" + id));
+
+		tempUserRepository.delete(tempUser);
+
+
+	}
 }

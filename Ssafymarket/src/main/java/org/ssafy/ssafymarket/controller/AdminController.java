@@ -43,4 +43,19 @@ public class AdminController {
        return ResponseEntity.ok(Map.of("success",true,"user",user));
 
     }
+
+
+	//거절
+	@Operation(
+		summary = "거절",
+		description = "학번를 가지고 거절을 진행한다."
+	)
+	@DeleteMapping("/users/{id}/reject")
+	public ResponseEntity<Map<String,Object>> rejectApproval(@PathVariable String id) {
+		
+		adminService.rejectApproval(id);
+		
+		return ResponseEntity.ok(Map.of("success",true,"message","거절 완료"));
+
+	}
 }
