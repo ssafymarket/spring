@@ -42,7 +42,13 @@ public class ChatRoomService {
 
         // 기존 채팅방 확인
         ChatRoom chatRoom = chatRoomRepository.findByPost_PostIdAndBuyer_StudentId(postId, buyerId)
-                .orElseGet(() -> {
+			.map(room -> {
+				if(room.getActivity()==0){
+					room.setActivity(1);
+				}
+				return room;
+			})
+			.orElseGet(() -> {
                     // 새 채팅방 생성
                     User buyer = userRepository.findByStudentId(buyerId)
                             .orElseThrow(() -> new IllegalArgumentException("구매자를 찾을 수 없습니다"));

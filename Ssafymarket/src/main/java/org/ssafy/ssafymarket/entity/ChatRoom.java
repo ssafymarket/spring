@@ -21,8 +21,12 @@ public class ChatRoom {
     @Column(name = "room_id")
     private Long roomId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(
+		name = "post_id",
+		nullable = false,
+		foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
+	)
     private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
