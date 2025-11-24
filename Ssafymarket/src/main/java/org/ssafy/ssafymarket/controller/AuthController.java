@@ -12,11 +12,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.ssafy.ssafymarket.dto.LoginRequest;
+import org.ssafy.ssafymarket.dto.PasswordFindDto;
 import org.ssafy.ssafymarket.dto.SignupRequest;
 import org.ssafy.ssafymarket.entity.TempUser;
 import org.ssafy.ssafymarket.entity.User;
 import org.ssafy.ssafymarket.repository.TempUserRepository;
 import org.ssafy.ssafymarket.repository.UserRepository;
+import org.ssafy.ssafymarket.service.AuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,6 +35,7 @@ public class AuthController {
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
     private final TempUserRepository tempUserRepository;
+	private final AuthService authService;
 
 
 	@Operation(summary = "로그인 (세션 발급)",
@@ -84,6 +87,32 @@ public class AuthController {
 		));
 
 	}
+
+	/**
+	 * 비번 찾기
+	 * 학번 , 반번호, 이름 을 기반으로 비번 찾기 비번 은 111111으로 공정으로 리턴해주자
+	 */
+	@PostMapping("/password/find")
+	public ResponseEntity<Map<String,Object>> passwordFind(@RequestBody PasswordFindDto findDto){
+		Boolean rs=authService.passwordFind(findDto);
+		if(rs){
+			return ResponseEntity.ok(Map.of(
+				"success", true,
+				"message","비번변경 성공"
+				));
+		}else{
+			return ResponseEntity.ok(Map.of(
+				"success", false,
+				"message","비번변경실패"
+				));
+		}
+		
+
+
+
+	}
+
+
 
 	/**
 	 * 내 정보 조회
