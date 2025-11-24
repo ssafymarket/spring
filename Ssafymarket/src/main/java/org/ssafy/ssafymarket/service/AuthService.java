@@ -31,7 +31,7 @@ public class AuthService {
 			return false; // 존재하지 않음
 		}
 		User user=optionalUser.get();
-		user.setPassword(passwordEncoder.encode("111111"));
+		user.setPassword(passwordEncoder.encode("123456"));
 
 		return true;
 
