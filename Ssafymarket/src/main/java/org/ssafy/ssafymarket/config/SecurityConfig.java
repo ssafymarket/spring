@@ -14,7 +14,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+import org.springframework.session.Session;
 import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
+import org.springframework.session.security.SpringSessionBackedSessionRegistry;
 import org.ssafy.ssafymarket.auth.JsonUsernamePasswordAuthFilter;
 
 // CORS
@@ -31,14 +34,27 @@ import org.springframework.http.HttpMethod;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+	private final SpringSessionBackedSessionRegistry<? extends Session> springSessionBackedSessionRegistry;
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationManager authManager) throws Exception {
 
 		JsonUsernamePasswordAuthFilter jsonLoginFilter = new JsonUsernamePasswordAuthFilter();
 		jsonLoginFilter.setAuthenticationManager(authManager);
-
 		// 로그인 성공 시: 세션 생성 보장 + JSON 응답
 		jsonLoginFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
+			var session =request.getSession(true);
+			String currentSessionId=session.getId();
+			String username = authentication.getName();
+
+			var sessions = sessionRepository.findByPrincipalName(username);
+
+			sessions.forEach((sessionId,s)->{
+				if(!sessionId.equals(currentSessionId)){
+					s.setMaxInactiveInterval(0);  // 유효시간 0초
+					sessionRepository.save(s);
+				}
+			});
+
 			request.getSession(true); // 세션 생성 (Set-Cookie 강제)
 			response.setStatus(HttpServletResponse.SC_OK);
 			response.setContentType("application/json;charset=UTF-8");
@@ -51,6 +67,8 @@ public class SecurityConfig {
 
 		// 로그인 실패 시
 		jsonLoginFilter.setAuthenticationFailureHandler((request, response, ex) -> {
+
+
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			response.setContentType("application/json;charset=UTF-8");
 			response.getWriter().write("{\"success\": false, \"message\": \"로그인 실패\"}");
@@ -101,7 +119,11 @@ public class SecurityConfig {
 				.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
 				.maximumSessions(1)
 				.maxSessionsPreventsLogin(false)
+				.sessionRegistry(springSessionBackedSessionRegistry)
 			);
+
+
+		http.addFilterAt(jsonLoginFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
 	}
