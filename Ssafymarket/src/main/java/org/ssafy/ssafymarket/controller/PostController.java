@@ -158,39 +158,61 @@ public class PostController {
 		summary = "전체 게시글 목록 조회",
 		description = "\t * @param page 페이지 번호 (0부터 시작)\n"
 			+ "\t * @param size 페이지 크기 (기본 20)\n"
-			+ "\t * @param sort 정렬 방식 (latest, popular, lowPrice, highPrice)"
+			+ "\t * @param sort 정렬 방식 (latest, popular, lowPrice, highPrice)\n"
+			+ "\t * 비로그인: 전체 캠퍼스 게시글 조회\n"
+			+ "\t * 로그인: 본인 캠퍼스 게시글만 조회"
 	)
 	@GetMapping
 	@Transactional(readOnly = true)
 	public ResponseEntity<Map<String, Object>> getAllPosts(
 		@RequestParam(defaultValue = "0") int page,
 		@RequestParam(defaultValue = "20") int size,
-		@RequestParam(defaultValue = "latest") String sort
+		@RequestParam(defaultValue = "latest") String sort,
+		Authentication authentication
 	) {
 		try {
 			Page<Post> postPage;
+			Map<String, Object> response = new HashMap<>();
 
-			// 인기순은 별도 쿼리 사용
-			if ("popular".equalsIgnoreCase(sort)) {
-				Pageable pageable = PageRequest.of(page, size);
-				postPage = postRepository.findAllByPopularity(pageable);
+			// 로그인 여부에 따라 다른 처리
+			if (authentication == null) {
+				// 비로그인: 전체 캠퍼스 게시글 조회
+				if ("popular".equalsIgnoreCase(sort)) {
+					Pageable pageable = PageRequest.of(page, size);
+					postPage = postRepository.findAllByPopularity(pageable);
+				} else {
+					Pageable pageable = createPageable(page, size, sort);
+					postPage = postRepository.findAll(pageable);
+				}
 			} else {
-				Pageable pageable = createPageable(page, size, sort);
-				postPage = postRepository.findAll(pageable);
+				// 로그인: 본인 캠퍼스만 조회
+				String studentId = authentication.getName();
+				User user = userRepository.findByStudentId(studentId)
+					.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+				if ("popular".equalsIgnoreCase(sort)) {
+					Pageable pageable = PageRequest.of(page, size);
+					postPage = postRepository.findByCampusByPopularity(user.getCampus(), pageable);
+				} else {
+					Pageable pageable = createPageable(page, size, sort);
+					postPage = postRepository.findByCampus(user.getCampus(), pageable);
+				}
+
+				response.put("campus", user.getCampus().toString());
 			}
 
 			List<Map<String, Object>> postList = postPage.getContent().stream()
 				.map(this::convertPostToMap)
 				.collect(Collectors.toList());
 
-			return ResponseEntity.ok(Map.of(
-				"success", true,
-				"posts", postList,
-				"currentPage", postPage.getNumber(),
-				"totalPages", postPage.getTotalPages(),
-				"totalItems", postPage.getTotalElements(),
-				"pageSize", postPage.getSize()
-			));
+			response.put("success", true);
+			response.put("posts", postList);
+			response.put("currentPage", postPage.getNumber());
+			response.put("totalPages", postPage.getTotalPages());
+			response.put("totalItems", postPage.getTotalElements());
+			response.put("pageSize", postPage.getSize());
+
+			return ResponseEntity.ok(response);
 		} catch (Exception e) {
 			log.error("게시글 목록 조회 실패", e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -399,6 +421,13 @@ public class PostController {
 					.body(Map.of("success", false, "message", "본인의 게시글이거나 관리자만 삭제할 수 있습니다."));
 			}
 
+			// 게시글 삭제 전에 연관된 좋아요 먼저 삭제
+			List<PostLike> likes = postLikeRepository.findByPostId(postId);
+			if (!likes.isEmpty()) {
+				postLikeRepository.deleteAll(likes);
+				log.info("게시글 삭제 전 좋아요 삭제: postId={}, 좋아요 수={}", postId, likes.size());
+			}
+
 			postRepository.delete(post);
 
 			String deletedBy = isAdmin && !isOwner ? "관리자" : "작성자";
@@ -524,7 +553,8 @@ public class PostController {
 	@Operation(
 		summary = "카테고리별 게시글 조회",
 		description = "카테고리종류, page,size,sort\n"+
-			"sort 에들어갈수 있는값 popular,lowprice,highprice,latest"
+			"sort 에들어갈수 있는값 popular,lowprice,highprice,latest\n"+
+			"비로그인: 전체 캠퍼스, 로그인: 본인 캠퍼스만 조회"
 	)
 	@GetMapping("/category")
 	@Transactional(readOnly = true)
@@ -532,34 +562,54 @@ public class PostController {
 		@RequestParam String name,
 		@RequestParam(defaultValue = "0") int page,
 		@RequestParam(defaultValue = "20") int size,
-		@RequestParam(defaultValue = "latest") String sort
+		@RequestParam(defaultValue = "latest") String sort,
+		Authentication authentication
 	) {
 		String category = name;
 		try {
 			Page<Post> postPage;
+			Map<String, Object> response = new HashMap<>();
 
-			// 인기순은 별도 쿼리 사용
-			if ("popular".equalsIgnoreCase(sort)) {
-				Pageable pageable = PageRequest.of(page, size);
-				postPage = postRepository.findByCategoryByPopularity(category, pageable);
+			// 로그인 여부에 따라 다른 처리
+			if (authentication == null) {
+				// 비로그인: 전체 캠퍼스
+				if ("popular".equalsIgnoreCase(sort)) {
+					Pageable pageable = PageRequest.of(page, size);
+					postPage = postRepository.findByCategoryByPopularity(category, pageable);
+				} else {
+					Pageable pageable = createPageable(page, size, sort);
+					postPage = postRepository.findByCategory(category, pageable);
+				}
 			} else {
-				Pageable pageable = createPageable(page, size, sort);
-				postPage = postRepository.findByCategory(category, pageable);
+				// 로그인: 본인 캠퍼스만
+				String studentId = authentication.getName();
+				User user = userRepository.findByStudentId(studentId)
+					.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+				if ("popular".equalsIgnoreCase(sort)) {
+					Pageable pageable = PageRequest.of(page, size);
+					postPage = postRepository.findByCampusAndCategoryByPopularity(user.getCampus(), category, pageable);
+				} else {
+					Pageable pageable = createPageable(page, size, sort);
+					postPage = postRepository.findByCampusAndCategory(user.getCampus(), category, pageable);
+				}
+
+				response.put("campus", user.getCampus().toString());
 			}
 
 			List<Map<String, Object>> postList = postPage.getContent().stream()
 				.map(this::convertPostToMap)
 				.collect(Collectors.toList());
 
-			return ResponseEntity.ok(Map.of(
-				"success", true,
-				"category", category,
-				"posts", postList,
-				"currentPage", postPage.getNumber(),
-				"totalPages", postPage.getTotalPages(),
-				"totalItems", postPage.getTotalElements(),
-				"pageSize", postPage.getSize()
-			));
+			response.put("success", true);
+			response.put("category", category);
+			response.put("posts", postList);
+			response.put("currentPage", postPage.getNumber());
+			response.put("totalPages", postPage.getTotalPages());
+			response.put("totalItems", postPage.getTotalElements());
+			response.put("pageSize", postPage.getSize());
+
+			return ResponseEntity.ok(response);
 		} catch (Exception e) {
 			log.error("카테고리별 조회 실패", e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -1144,7 +1194,8 @@ public class PostController {
 			+ "\t * @param status 판매상태 (선택, 없으면 전체 검색)\n"
 			+ "\t * @param page 페이지 번호 (기본 0)\n"
 			+ "\t * @param size 페이지 크기 (기본 20)\n"
-			+ "\t * @param sort 정렬 방식 (latest, popular, lowPrice, highPrice)"
+			+ "\t * @param sort 정렬 방식 (latest, popular, lowPrice, highPrice)\n"
+			+ "\t * 비로그인: 전체 캠퍼스, 로그인: 본인 캠퍼스만 검색"
 	)
 	@GetMapping("/search")
 	@Transactional(readOnly = true)
@@ -1153,7 +1204,8 @@ public class PostController {
 		@RequestParam(required = false) String status,
 		@RequestParam(defaultValue = "0") int page,
 		@RequestParam(defaultValue = "20") int size,
-		@RequestParam(defaultValue = "latest") String sort
+		@RequestParam(defaultValue = "latest") String sort,
+		Authentication authentication
 	) {
 		try {
 			if (keyword == null || keyword.trim().isEmpty()) {
@@ -1165,54 +1217,104 @@ public class PostController {
 			}
 
 			Page<Post> postPage;
+			Map<String, Object> response = new HashMap<>();
 			boolean isPopular = "popular".equalsIgnoreCase(sort);
 
-			// status 파라미터가 있으면 해당 상태만 검색, 없으면 전체 검색
-			if (status != null && !status.trim().isEmpty()) {
-				try {
-					Post.PostStatus postStatus = Post.PostStatus.valueOf(status);
+			// 로그인 여부에 따라 다른 처리
+			if (authentication == null) {
+				// 비로그인: 전체 캠퍼스 검색
+				if (status != null && !status.trim().isEmpty()) {
+					try {
+						Post.PostStatus postStatus = Post.PostStatus.valueOf(status);
 
+						if (isPopular) {
+							Pageable pageable = PageRequest.of(page, size);
+							postPage = postRepository.searchByKeywordAndStatusByPopularity(keyword.trim(), postStatus, pageable);
+						} else {
+							Pageable pageable = createPageable(page, size, sort);
+							postPage = postRepository.searchByKeywordAndStatus(keyword.trim(), postStatus, pageable);
+						}
+
+						log.info("게시글 검색 (비로그인, status 필터) - keyword: {}, status: {}, page: {}, sort: {}",
+							keyword, status, page, sort);
+					} catch (IllegalArgumentException e) {
+						return ResponseEntity.badRequest()
+							.body(Map.of(
+								"success", false,
+								"message", "잘못된 판매상태입니다. (판매중, 판매완료 중 선택)"
+							));
+					}
+				} else {
 					if (isPopular) {
 						Pageable pageable = PageRequest.of(page, size);
-						postPage = postRepository.searchByKeywordAndStatusByPopularity(keyword.trim(), postStatus, pageable);
+						postPage = postRepository.searchByKeywordByPopularity(keyword.trim(), pageable);
 					} else {
 						Pageable pageable = createPageable(page, size, sort);
-						postPage = postRepository.searchByKeywordAndStatus(keyword.trim(), postStatus, pageable);
+						postPage = postRepository.searchByKeyword(keyword.trim(), pageable);
 					}
 
-					log.info("게시글 검색 (status 필터) - keyword: {}, status: {}, page: {}, sort: {}", keyword, status, page, sort);
-				} catch (IllegalArgumentException e) {
-					return ResponseEntity.badRequest()
-						.body(Map.of(
-							"success", false,
-							"message", "잘못된 판매상태입니다. (판매중, 판매완료 중 선택)"
-						));
+					log.info("게시글 검색 (비로그인, 전체) - keyword: {}, page: {}, sort: {}", keyword, page, sort);
 				}
 			} else {
-				if (isPopular) {
-					Pageable pageable = PageRequest.of(page, size);
-					postPage = postRepository.searchByKeywordByPopularity(keyword.trim(), pageable);
+				// 로그인: 본인 캠퍼스만 검색
+				String studentId = authentication.getName();
+				User user = userRepository.findByStudentId(studentId)
+					.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+				if (status != null && !status.trim().isEmpty()) {
+					try {
+						Post.PostStatus postStatus = Post.PostStatus.valueOf(status);
+
+						if (isPopular) {
+							Pageable pageable = PageRequest.of(page, size);
+							postPage = postRepository.searchByCampusAndKeywordAndStatusByPopularity(
+								user.getCampus(), keyword.trim(), postStatus, pageable);
+						} else {
+							Pageable pageable = createPageable(page, size, sort);
+							postPage = postRepository.searchByCampusAndKeywordAndStatus(
+								user.getCampus(), keyword.trim(), postStatus, pageable);
+						}
+
+						log.info("게시글 검색 (로그인, status 필터) - campus: {}, keyword: {}, status: {}, page: {}, sort: {}",
+							user.getCampus(), keyword, status, page, sort);
+					} catch (IllegalArgumentException e) {
+						return ResponseEntity.badRequest()
+							.body(Map.of(
+								"success", false,
+								"message", "잘못된 판매상태입니다. (판매중, 판매완료 중 선택)"
+							));
+					}
 				} else {
-					Pageable pageable = createPageable(page, size, sort);
-					postPage = postRepository.searchByKeyword(keyword.trim(), pageable);
+					if (isPopular) {
+						Pageable pageable = PageRequest.of(page, size);
+						postPage = postRepository.searchByCampusAndKeywordByPopularity(
+							user.getCampus(), keyword.trim(), pageable);
+					} else {
+						Pageable pageable = createPageable(page, size, sort);
+						postPage = postRepository.searchByCampusAndKeyword(
+							user.getCampus(), keyword.trim(), pageable);
+					}
+
+					log.info("게시글 검색 (로그인, 전체) - campus: {}, keyword: {}, page: {}, sort: {}",
+						user.getCampus(), keyword, page, sort);
 				}
 
-				log.info("게시글 검색 (전체) - keyword: {}, page: {}, sort: {}", keyword, page, sort);
+				response.put("campus", user.getCampus().toString());
 			}
 
 			List<Map<String, Object>> postList = postPage.getContent().stream()
 				.map(this::convertPostToMap)
 				.collect(Collectors.toList());
 
-			return ResponseEntity.ok(Map.of(
-				"success", true,
-				"posts", postList,
-				"currentPage", postPage.getNumber(),
-				"totalPages", postPage.getTotalPages(),
-				"totalItems", postPage.getTotalElements(),
-				"pageSize", postPage.getSize(),
-				"keyword", keyword.trim()
-			));
+			response.put("success", true);
+			response.put("posts", postList);
+			response.put("currentPage", postPage.getNumber());
+			response.put("totalPages", postPage.getTotalPages());
+			response.put("totalItems", postPage.getTotalElements());
+			response.put("pageSize", postPage.getSize());
+			response.put("keyword", keyword.trim());
+
+			return ResponseEntity.ok(response);
 
 		} catch (Exception e) {
 			log.error("게시글 검색 실패", e);

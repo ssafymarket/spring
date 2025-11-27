@@ -28,8 +28,20 @@ public class User {
     @Column(name = "role", nullable = false)
     private UserRole role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "campus", nullable = false, length = 20)
+    private Campus campus;
+
     public enum UserRole {
         ROLE_USER,
         ROLE_ADMIN
+    }
+
+    public enum Campus {
+        SEOUL,      // 서울
+        BUULGYEONG, // 부울경
+        DAEJEON,    // 대전
+        GUMI,       // 구미
+        GWANGJU     // 광주
     }
 }

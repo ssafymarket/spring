@@ -8,8 +8,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   sql:
     init:
-      mode: always
-      platform: mysql
+      mode: never
   servlet:
     multipart:
       max-file-size: 20MB
@@ -29,7 +28,7 @@ spring:
   session:
     store-type: jdbc
     jdbc:
-      initialize-schema: always
+      initialize-schema: never
     timeout: 1800 # 30분 (초 단위)
     cookie:
       name: SESSION

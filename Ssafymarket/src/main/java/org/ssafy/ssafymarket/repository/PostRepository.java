@@ -75,4 +75,80 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> searchByKeywordAndStatus(@Param("keyword") String keyword,
                                          @Param("status") Post.PostStatus status,
                                          Pageable pageable);
+
+    // === 캠퍼스별 필터링 쿼리 ===
+
+    // 캠퍼스별 전체 게시글 조회
+    @Query("SELECT p FROM Post p WHERE p.writer.campus = :campus")
+    Page<Post> findByCampus(@Param("campus") User.Campus campus, Pageable pageable);
+
+    // 캠퍼스별 인기순 정렬
+    @Query("SELECT p FROM Post p " +
+           "LEFT JOIN PostLike pl ON pl.postId = p.postId " +
+           "WHERE p.writer.campus = :campus " +
+           "GROUP BY p.postId " +
+           "ORDER BY COUNT(pl) DESC, p.createdAt DESC")
+    Page<Post> findByCampusByPopularity(@Param("campus") User.Campus campus, Pageable pageable);
+
+    // 캠퍼스 + 카테고리별 조회
+    @Query("SELECT p FROM Post p WHERE p.writer.campus = :campus AND p.category = :category")
+    Page<Post> findByCampusAndCategory(@Param("campus") User.Campus campus,
+                                        @Param("category") String category,
+                                        Pageable pageable);
+
+    // 캠퍼스 + 카테고리별 인기순
+    @Query("SELECT p FROM Post p " +
+           "LEFT JOIN PostLike pl ON pl.postId = p.postId " +
+           "WHERE p.writer.campus = :campus AND p.category = :category " +
+           "GROUP BY p.postId " +
+           "ORDER BY COUNT(pl) DESC, p.createdAt DESC")
+    Page<Post> findByCampusAndCategoryByPopularity(@Param("campus") User.Campus campus,
+                                                     @Param("category") String category,
+                                                     Pageable pageable);
+
+    // 캠퍼스 + 검색
+    @Query("SELECT p FROM Post p WHERE " +
+           "p.writer.campus = :campus AND " +
+           "(LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Post> searchByCampusAndKeyword(@Param("campus") User.Campus campus,
+                                         @Param("keyword") String keyword,
+                                         Pageable pageable);
+
+    // 캠퍼스 + 검색 인기순
+    @Query("SELECT p FROM Post p " +
+           "LEFT JOIN PostLike pl ON pl.postId = p.postId " +
+           "WHERE p.writer.campus = :campus AND " +
+           "(LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "GROUP BY p.postId " +
+           "ORDER BY COUNT(pl) DESC, p.createdAt DESC")
+    Page<Post> searchByCampusAndKeywordByPopularity(@Param("campus") User.Campus campus,
+                                                     @Param("keyword") String keyword,
+                                                     Pageable pageable);
+
+    // 캠퍼스 + 검색 + 상태별
+    @Query("SELECT p FROM Post p WHERE " +
+           "p.writer.campus = :campus AND " +
+           "(LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "p.status = :status")
+    Page<Post> searchByCampusAndKeywordAndStatus(@Param("campus") User.Campus campus,
+                                                  @Param("keyword") String keyword,
+                                                  @Param("status") Post.PostStatus status,
+                                                  Pageable pageable);
+
+    // 캠퍼스 + 검색 + 상태별 인기순
+    @Query("SELECT p FROM Post p " +
+           "LEFT JOIN PostLike pl ON pl.postId = p.postId " +
+           "WHERE p.writer.campus = :campus AND " +
+           "(LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "p.status = :status " +
+           "GROUP BY p.postId " +
+           "ORDER BY COUNT(pl) DESC, p.createdAt DESC")
+    Page<Post> searchByCampusAndKeywordAndStatusByPopularity(@Param("campus") User.Campus campus,
+                                                              @Param("keyword") String keyword,
+                                                              @Param("status") Post.PostStatus status,
+                                                              Pageable pageable);
 }

@@ -76,6 +76,7 @@ public class AuthController {
 		user.setName(request.getName());
 		user.setClassName(request.getClassName());
 		user.setPassword(passwordEncoder.encode(request.getPassword())); // 암호화
+		user.setCampus(request.getCampus()); // 캠퍼스 설정
 
         tempUserRepository.save(user);
 

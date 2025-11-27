@@ -33,6 +33,7 @@ public class AdminService {
                 .name(tempUser.getName())
                 .className(tempUser.getClassName())
                 .password(tempUser.getPassword())
+                .campus(tempUser.getCampus())
                 .role(User.UserRole.ROLE_USER)
                 .build();
 

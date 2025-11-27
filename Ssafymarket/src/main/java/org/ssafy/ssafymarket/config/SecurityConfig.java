@@ -88,6 +88,8 @@ public class SecurityConfig {
 				)
 			)
 			.authorizeHttpRequests(auth -> auth
+				// CORS preflight (OPTIONS) 요청 허용
+				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				.requestMatchers("/api/auth/**", "/ws/**", "/api/public/**", "/chat-test.html", "/post-test.html", "/api/test/**","/swagger-ui/**","/v3/api-docs/**").permitAll()
 				// 채팅 API는 인증 필요
 				.requestMatchers("/api/chat/**").authenticated()

@@ -26,6 +26,10 @@ public class TempUser {
     @Column(name = "password", nullable = false, length = 255)
     private String password;   // 비밀번호 (임시)
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "campus", nullable = false, length = 20)
+    private User.Campus campus;  // 캠퍼스
+
     @Column(name="approve",nullable = false)
     private int approve=0;
 }
