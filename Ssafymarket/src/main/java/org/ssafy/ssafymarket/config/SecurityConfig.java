@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
 import org.springframework.session.security.SpringSessionBackedSessionRegistry;
@@ -24,6 +25,8 @@ import org.ssafy.ssafymarket.auth.JsonUsernamePasswordAuthFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.time.Duration;
 import java.util.List;
 
 import org.springframework.http.HttpMethod;
@@ -33,7 +36,7 @@ import org.springframework.http.HttpMethod;
 @EnableJdbcHttpSession
 @RequiredArgsConstructor
 public class SecurityConfig {
-
+	private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
 	private final SpringSessionBackedSessionRegistry<? extends Session> springSessionBackedSessionRegistry;
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationManager authManager) throws Exception {
@@ -48,12 +51,13 @@ public class SecurityConfig {
 
 			var sessions = sessionRepository.findByPrincipalName(username);
 
-			sessions.forEach((sessionId,s)->{
-				if(!sessionId.equals(currentSessionId)){
-					s.setMaxInactiveInterval(0);  // 유효시간 0초
-					sessionRepository.save(s);
+			sessions.forEach((sessionId, s) -> {
+				if (!sessionId.equals(currentSessionId)) {
+					sessionRepository.deleteById(sessionId);
+
 				}
 			});
+
 
 			request.getSession(true); // 세션 생성 (Set-Cookie 강제)
 			response.setStatus(HttpServletResponse.SC_OK);
