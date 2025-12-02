@@ -2,13 +2,17 @@ package org.ssafy.ssafymarket.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.ssafy.ssafymarket.dto.SignupRequest;
 import org.ssafy.ssafymarket.entity.TempUser;
 import org.ssafy.ssafymarket.entity.User;
 import org.ssafy.ssafymarket.repository.TempUserRepository;
 import org.ssafy.ssafymarket.repository.UserRepository;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +24,7 @@ public class AdminService {
     public List<TempUser> findAll() {
         return tempUserRepository.findByApprove(0);
     }
+
 
     @Transactional
     public User updateStatus(String id) {
@@ -50,4 +55,6 @@ public class AdminService {
 
 
 	}
+
+
 }

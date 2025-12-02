@@ -56,36 +56,7 @@ public class AuthController {
 	)
 	@PostMapping("/signup")
 	public ResponseEntity<?> signup(@RequestBody SignupRequest request){
-		//중복체크
-		if (userRepository.existsById(request.getStudentId())) {
-			return ResponseEntity
-				.badRequest()
-				.body(Map.of("success", false, "message", "이미 존재하는 학번입니다."));
-		}
-
-        //임시 회원등록에드 중복 체크 확인
-        if(tempUserRepository.existsById(request.getStudentId())){
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("success", false, "message", "이미 등록 하셨습니다."));
-        }
-
-
-        TempUser user = new TempUser();
-		user.setStudentId(request.getStudentId());
-		user.setName(request.getName());
-		user.setClassName(request.getClassName());
-		user.setPassword(passwordEncoder.encode(request.getPassword())); // 암호화
-		user.setCampus(request.getCampus()); // 캠퍼스 설정
-
-        tempUserRepository.save(user);
-
-		return ResponseEntity.ok(Map.of(
-			"success", true,
-			"message", "회원가입 성공",
-			"studentId", user.getStudentId()
-
-		));
+		return authService.signup(request);
 
 	}
 
@@ -124,28 +95,22 @@ public class AuthController {
 			"학번, 이름, 반 정보 반환\n" +
 			"인증 필요"
 	)
+
 	@GetMapping("/me")
 	public ResponseEntity<Map<String, Object>> getMyInfo(Authentication authentication) {
+		if (authentication == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+				.body(Map.of("success", false, "message", "로그인이 필요합니다."));
+		}
+
+		String studentId = authentication.getName();
+
 		try {
-			if (authentication == null) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-					.body(Map.of("success", false, "message", "로그인이 필요합니다."));
-			}
-
-			String studentId = authentication.getName();
-			User user = userRepository.findByStudentId(studentId)
-				.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-			return ResponseEntity.ok(Map.of(
-				"success", true,
-				"user", Map.of(
-					"studentId", user.getStudentId(),
-					"name", user.getName(),
-					"className", user.getClassName(),
-					"role", user.getRole().name()
-				)
-			));
-
+			Map<String, Object> body = authService.getMyInfo(studentId);
+			return ResponseEntity.ok(body);
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(Map.of("success", false, "message", e.getMessage()));
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				.body(Map.of("success", false, "message", "조회 실패: " + e.getMessage()));
